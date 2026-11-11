@@ -26,8 +26,9 @@ const BY_KEY = {
 };
 
 const ACTION_KEYS = new Set(["Enter", " ", ">"]);
+const WAIT_KEYS = new Set(["x", "."]);
 
-export function bindInput(target, { onMove, onAction, onRestart }) {
+export function bindInput(target, { onMove, onAction, onWait, onRestart }) {
   target.addEventListener("keydown", (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -40,6 +41,9 @@ export function bindInput(target, { onMove, onAction, onRestart }) {
     } else if (ACTION_KEYS.has(event.key)) {
       event.preventDefault();
       onAction();
+    } else if (WAIT_KEYS.has(key) || event.code === "Numpad5") {
+      event.preventDefault();
+      onWait();
     } else if (key === "r") {
       onRestart();
     }
