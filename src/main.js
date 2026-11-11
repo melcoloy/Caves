@@ -4,15 +4,18 @@ import { createRng, randomSeed } from "./rng.js";
 import { generateDungeon, TILE } from "./dungeon.js";
 import { createRenderer } from "./render.js";
 import { bindInput } from "./input.js";
+import { computeFov } from "./fov.js";
 
 const MAP_WIDTH = 60;
 const MAP_HEIGHT = 36;
 const MAX_LOG_LINES = 5;
+const FOV_RADIUS = 8;
 
 const ui = {
   canvas: document.getElementById("screen"),
   depth: document.getElementById("depth"),
   turns: document.getElementById("turns"),
+  explored: document.getElementById("explored"),
   seed: document.getElementById("seed"),
   log: document.getElementById("log"),
 };
@@ -47,6 +50,20 @@ function newGame(seed = randomSeed()) {
 function enterLevel() {
   state.dungeon = generateDungeon(MAP_WIDTH, MAP_HEIGHT, state.rng);
   state.player = { ...state.dungeon.start };
+  updateFov();
+}
+
+// Recalcule ce que le joueur voit depuis sa position actuelle.
+function updateFov() {
+  const { dungeon, player } = state;
+  dungeon.clearVisible();
+  computeFov(
+    player.x,
+    player.y,
+    FOV_RADIUS,
+    (x, y) => dungeon.isOpaque(x, y),
+    (x, y) => dungeon.reveal(x, y),
+  );
 }
 
 function log(text) {
@@ -68,6 +85,7 @@ function tryMove(dx, dy) {
   state.player.x = nx;
   state.player.y = ny;
   state.turns++;
+  updateFov();
 
   if (onStairs()) log("Un escalier s'enfonce dans les ténèbres… (Entrée pour descendre)");
   render();
@@ -88,6 +106,7 @@ function render() {
   renderer.draw(state.dungeon, state.player);
   ui.depth.textContent = state.depth;
   ui.turns.textContent = state.turns;
+  ui.explored.textContent = `${Math.round(state.dungeon.explorationRatio() * 100)} %`;
   ui.seed.textContent = state.seed;
 }
 

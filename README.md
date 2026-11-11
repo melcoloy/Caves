@@ -2,6 +2,8 @@
 
 Un roguelike au tour par tour jouable dans le navigateur. Descends dans les caves sous la Grand-Place de Mons, survis aux monstres et affronte le Dragon au plus profond du donjon.
 
+Le joueur ne voit que ce qui est éclairé autour de lui ; les zones déjà explorées restent en mémoire, plus sombres.
+
 Chaque partie génère des donjons différents à partir d'une **graine** (seed) : avec la même graine, tu retrouves exactement les mêmes niveaux.
 
 ## Jouer
@@ -23,12 +25,12 @@ Le jeu utilise des modules ES : il doit être servi par un serveur HTTP (ouvrir 
 
 ## Mettre en ligne
 
-Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera accessible sur `https://<pseudo>.github.io/caves-du-doudou/`.
+Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera accessible sur **https://melcoloy.github.io/Caves/**.
 
 ## Feuille de route
 
 - [x] **Itération 1 — Fondations** : donjon procédural (salles + couloirs), déplacement, escaliers, graine
-- [ ] **Itération 2 — Vision** : champ de vision et brouillard de guerre
+- [x] **Itération 2 — Vision** : champ de vision (shadowcasting), brouillard de guerre, % d'exploration
 - [ ] **Itération 3 — Monstres** : ennemis, IA de poursuite, combat au tour par tour
 - [ ] **Itération 4 — Objets** : potions, armes, armures, inventaire
 - [ ] **Itération 5 — Progression** : XP, niveaux, difficulté selon la profondeur
@@ -42,6 +44,7 @@ index.html        page du jeu
 style.css         thème visuel
 src/
   rng.js          générateur aléatoire à graine
+  fov.js          champ de vision (shadowcasting)
   dungeon.js      génération du donjon
   render.js       dessin sur le canvas
   input.js        gestion du clavier
