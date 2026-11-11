@@ -103,6 +103,11 @@ export function generateDungeon(width, height, rng, options = {}) {
   }
   tiles[stairs.y * width + stairs.x] = TILE.STAIRS;
 
+  // Vision : `visible` = vu ce tour-ci, `explored` = déjà vu au moins une fois.
+  const visible = new Uint8Array(width * height);
+  const explored = new Uint8Array(width * height);
+  const walkableCount = tiles.reduce((n, t) => n + (t !== TILE.WALL ? 1 : 0), 0);
+
   return {
     width,
     height,
@@ -119,5 +124,30 @@ export function generateDungeon(width, height, rng, options = {}) {
     isWalkable(x, y) {
       return this.get(x, y) !== TILE.WALL;
     },
+    isOpaque(x, y) {
+      return this.get(x, y) === TILE.WALL;
+    },
+    isVisible(x, y) {
+      return this.inBounds(x, y) && visible[y * width + x] === 1;
+    },
+    isExplored(x, y) {
+      return this.inBounds(x, y) && explored[y * width + x] === 1;
+    },
+    clearVisible() {
+      visible.fill(0);
+    },
+    reveal(x, y) {
+      if (!this.inBounds(x, y)) return;
+      visible[y * width + x] = 1;
+      explored[y * width + x] = 1;
+    },
+    /** Part des cases praticables déjà découvertes (entre 0 et 1). */
+    explorationRatio() {
+      let seen = 0;
+      for (let i = 0; i < tiles.length; i++) {
+        if (tiles[i] !== TILE.WALL && explored[i]) seen++;
+      }
+      return seen / walkableCount;
+    },
   };
-}   
+}
