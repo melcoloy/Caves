@@ -14,6 +14,10 @@
     <header class="hud">
       <h1>Les Caves du Doudou</h1>
       <div class="stats">
+        <span class="hp">
+          PV <strong id="hp">30/30</strong>
+          <span class="hp-bar"><span id="hp-fill" class="hp-fill"></span></span>
+        </span>
         <span>Profondeur <strong id="depth">1</strong></span>
         <span>Tours <strong id="turns">0</strong></span>
         <span>Exploré <strong id="explored">0 %</strong></span>
@@ -23,12 +27,17 @@
 
     <div class="board">
       <canvas id="screen" aria-label="Carte du donjon"></canvas>
+      <div id="gameover" class="overlay" hidden>
+        <h2>Tu as péri dans les caves</h2>
+        <p id="gameover-text"></p>
+        <p class="hint">Appuie sur <kbd>R</kbd> pour recommencer</p>
+      </div>
     </div>
 
     <ul id="log" class="log" aria-live="polite"></ul>
 
     <footer class="help">
-      Flèches / ZQSD : se déplacer · Entrée : descendre · R : nouvelle partie
+      Flèches / ZQSD : se déplacer et attaquer · X / 5 : attendre · Entrée : descendre · R : nouvelle partie
     </footer>
   </main>
 

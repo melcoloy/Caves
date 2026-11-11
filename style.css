@@ -6,6 +6,7 @@
   --muted: #7d7496;
   --accent: #f2c14e;
   --player: #7fdbca;
+  --danger: #e0524f;
 }
 
 * {
@@ -55,6 +56,7 @@ h1 {
 }
 
 .board {
+  position: relative;
   padding: 8px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -79,10 +81,83 @@ canvas {
 }
 
 .log li {
-  color: var(--muted);
+  opacity: 0.55;
 }
 
 .log li:first-child {
+  opacity: 1;
+}
+
+.log li.damage {
+  color: var(--danger);
+}
+
+.log li.hit {
+  color: var(--player);
+}
+
+.log li.kill {
+  color: var(--accent);
+}
+
+/* Points de vie */
+.hp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hp-bar {
+  width: 80px;
+  height: 8px;
+  background: #2a1a22;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--player);
+  transition: width 0.15s ease, background-color 0.15s ease;
+}
+
+.hp-fill.low {
+  background: var(--danger);
+}
+
+/* Écran de fin */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(13, 11, 18, 0.82);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay h2 {
+  color: var(--danger);
+  font-size: 1.6rem;
+}
+
+.overlay .hint {
+  color: var(--muted);
+}
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text);
 }
 
