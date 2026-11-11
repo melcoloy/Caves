@@ -25,6 +25,7 @@ const PALETTE = {
 };
 
 const PLAYER_COLOR = "#7fdbca";
+const DEAD_PLAYER_COLOR = "#e0524f";
 
 // Un mur n'est dessiné que s'il touche du sol : le reste de la roche reste noir.
 function isVisibleWall(dungeon, x, y) {
@@ -77,7 +78,7 @@ export function createRenderer(canvas) {
     }
   }
 
-  function draw(dungeon, player) {
+  function draw(dungeon, player, monsters = [], dead = false) {
     ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -91,7 +92,14 @@ export function createRenderer(canvas) {
       }
     }
 
-    glyph("@", player.x, player.y, PLAYER_COLOR);
+    // Les monstres ne sont affichés que s'ils sont dans le champ de vision.
+    for (const monster of monsters) {
+      if (dungeon.isVisible(monster.x, monster.y)) {
+        glyph(monster.glyph, monster.x, monster.y, monster.color);
+      }
+    }
+
+    glyph("@", player.x, player.y, dead ? DEAD_PLAYER_COLOR : PLAYER_COLOR);
   }
 
   return { resize, draw };
