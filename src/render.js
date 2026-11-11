@@ -1,18 +1,30 @@
 // Rendu de la carte sur un <canvas>, façon roguelike classique (glyphes ASCII).
+// Trois états par case : visible (couleurs vives), explorée (couleurs ternes), inconnue (noir).
 
 import { TILE } from "./dungeon.js";
 
 export const TILE_SIZE = 16;
 
-const COLORS = {
-  background: "#0d0b12",
-  wall: "#2a2438",
-  wallGlyph: "#6b5f8a",
-  floor: "#15121e",
-  floorGlyph: "#3a3350",
-  stairs: "#f2c14e",
-  player: "#7fdbca",
+const BACKGROUND = "#0d0b12";
+
+const PALETTE = {
+  visible: {
+    wall: "#2f2842",
+    wallGlyph: "#8a7db0",
+    floor: "#1c1828",
+    floorGlyph: "#4a4266",
+    stairs: "#f2c14e",
+  },
+  remembered: {
+    wall: "#17141f",
+    wallGlyph: "#4a4266",
+    floor: "#110f18",
+    floorGlyph: "#2e2840",
+    stairs: "#7a6430",
+  },
 };
+
+const PLAYER_COLOR = "#7fdbca";
 
 // Un mur n'est dessiné que s'il touche du sol : le reste de la roche reste noir.
 function isVisibleWall(dungeon, x, y) {
@@ -46,32 +58,40 @@ export function createRenderer(canvas) {
     ctx.fillText(char, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2 + 1);
   }
 
+  function drawTile(dungeon, x, y, colors) {
+    switch (dungeon.get(x, y)) {
+      case TILE.WALL:
+        if (isVisibleWall(dungeon, x, y)) {
+          cell(x, y, colors.wall);
+          glyph("#", x, y, colors.wallGlyph);
+        }
+        break;
+      case TILE.FLOOR:
+        cell(x, y, colors.floor);
+        glyph("·", x, y, colors.floorGlyph);
+        break;
+      case TILE.STAIRS:
+        cell(x, y, colors.floor);
+        glyph(">", x, y, colors.stairs);
+        break;
+    }
+  }
+
   function draw(dungeon, player) {
-    ctx.fillStyle = COLORS.background;
+    ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let y = 0; y < dungeon.height; y++) {
       for (let x = 0; x < dungeon.width; x++) {
-        switch (dungeon.get(x, y)) {
-          case TILE.WALL:
-            if (isVisibleWall(dungeon, x, y)) {
-              cell(x, y, COLORS.wall);
-              glyph("#", x, y, COLORS.wallGlyph);
-            }
-            break;
-          case TILE.FLOOR:
-            cell(x, y, COLORS.floor);
-            glyph("·", x, y, COLORS.floorGlyph);
-            break;
-          case TILE.STAIRS:
-            cell(x, y, COLORS.floor);
-            glyph(">", x, y, COLORS.stairs);
-            break;
+        if (dungeon.isVisible(x, y)) {
+          drawTile(dungeon, x, y, PALETTE.visible);
+        } else if (dungeon.isExplored(x, y)) {
+          drawTile(dungeon, x, y, PALETTE.remembered);
         }
       }
     }
 
-    glyph("@", player.x, player.y, COLORS.player);
+    glyph("@", player.x, player.y, PLAYER_COLOR);
   }
 
   return { resize, draw };
