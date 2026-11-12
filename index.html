@@ -18,7 +18,7 @@
           PV <strong id="hp">30/30</strong>
           <span class="hp-bar"><span id="hp-fill" class="hp-fill"></span></span>
         </span>
-        <span>Profondeur <strong id="depth">1</strong></span>
+        <span>Profondeur <strong id="depth">1 / 10</strong></span>
         <span>Tours <strong id="turns">0</strong></span>
         <span>Exploré <strong id="explored">0 %</strong></span>
         <span class="seed">Graine <strong id="seed">—</strong></span>
@@ -28,8 +28,12 @@
     <div class="layout">
       <div class="board">
         <canvas id="screen" aria-label="Carte du donjon"></canvas>
+        <div id="boss-bar" class="boss-bar" hidden>
+          <span class="boss-name">Le Dragon du Doudou <span id="boss-state" class="boss-state"></span></span>
+          <div class="boss-hp"><span id="boss-fill" class="boss-fill"></span></div>
+        </div>
         <div id="gameover" class="overlay" hidden>
-          <h2>Tu as péri dans les caves</h2>
+          <h2 id="gameover-title">Tu as péri dans les caves</h2>
           <p id="gameover-text"></p>
           <p class="hint">Appuie sur <kbd>R</kbd> pour recommencer</p>
         </div>
