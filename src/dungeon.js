@@ -10,6 +10,7 @@ const DEFAULTS = {
   maxRooms: 14,
   minRoomSize: 4,
   maxRoomSize: 10,
+  withStairs: true, // false pour le dernier étage (antre du Dragon)
 };
 
 function center(room) {
@@ -90,18 +91,19 @@ export function generateDungeon(width, height, rng, options = {}) {
   const { tiles, rooms } = result;
   const start = center(rooms[0]);
 
-  // L'escalier va dans la salle la plus éloignée du départ.
-  let stairs = center(rooms[1]);
+  // La salle la plus éloignée du départ accueille l'escalier (ou l'antre du boss).
+  let exitRoom = rooms[1];
   let best = -1;
   for (const room of rooms.slice(1)) {
     const c = center(room);
     const dist = Math.abs(c.x - start.x) + Math.abs(c.y - start.y);
     if (dist > best) {
       best = dist;
-      stairs = c;
+      exitRoom = room;
     }
   }
-  tiles[stairs.y * width + stairs.x] = TILE.STAIRS;
+  const stairs = center(exitRoom);
+  if (opts.withStairs) tiles[stairs.y * width + stairs.x] = TILE.STAIRS;
 
   // Vision : `visible` = vu ce tour-ci, `explored` = déjà vu au moins une fois.
   const visible = new Uint8Array(width * height);
@@ -115,6 +117,7 @@ export function generateDungeon(width, height, rng, options = {}) {
     rooms,
     start,
     stairs,
+    exitRoom,
     inBounds(x, y) {
       return x >= 0 && y >= 0 && x < width && y < height;
     },
