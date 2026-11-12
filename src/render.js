@@ -28,6 +28,8 @@ const PLAYER_COLOR = "#7fdbca";
 const DEAD_PLAYER_COLOR = "#e0524f";
 const REMEMBERED_ITEM_COLOR = "#4a4266";
 const ELITE_HALO_COLOR = "#4a1c26";
+const BOSS_HALO_COLOR = "#5a2a10";
+const BOSS_CHARGING_HALO_COLOR = "#a0401a";
 
 // Un mur n'est dessiné que s'il touche du sol : le reste de la roche reste noir.
 function isVisibleWall(dungeon, x, y) {
@@ -80,7 +82,7 @@ export function createRenderer(canvas) {
     }
   }
 
-  function draw(dungeon, player, monsters = [], items = [], dead = false) {
+  function draw(dungeon, player, monsters = [], items = [], dead = false, effects = []) {
     ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -106,10 +108,22 @@ export function createRenderer(canvas) {
     // Les monstres ne sont affichés que s'ils sont dans le champ de vision.
     for (const monster of monsters) {
       if (dungeon.isVisible(monster.x, monster.y)) {
-        // Les élites sont signalées par un halo rouge sous leur glyphe.
-        if (monster.elite) cell(monster.x, monster.y, ELITE_HALO_COLOR);
+        // Les élites sont signalées par un halo rouge sous leur glyphe,
+        // le Dragon par un halo de braise qui s'embrase quand il prépare son souffle.
+        if (monster.boss) {
+          cell(monster.x, monster.y, monster.charging ? BOSS_CHARGING_HALO_COLOR : BOSS_HALO_COLOR);
+        } else if (monster.elite) {
+          cell(monster.x, monster.y, ELITE_HALO_COLOR);
+        }
         glyph(monster.glyph, monster.x, monster.y, monster.color);
       }
+    }
+
+    // Effets du tour (flammes…), dessinés par-dessus le décor.
+    for (const fx of effects) {
+      if (!dungeon.inBounds(fx.x, fx.y)) continue;
+      cell(fx.x, fx.y, "#2a120c");
+      glyph(fx.glyph, fx.x, fx.y, fx.color);
     }
 
     glyph("@", player.x, player.y, dead ? DEAD_PLAYER_COLOR : PLAYER_COLOR);

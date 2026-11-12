@@ -21,13 +21,17 @@ function randomFloorInRoom(dungeon, room, rng) {
   return dungeon.get(x, y) === TILE.FLOOR ? { x, y } : null;
 }
 
-export function spawnMonsters(dungeon, depth, rng) {
+/**
+ * @param {{ exclude?: object[] }} options  salles à laisser vides (ex. l'antre du Dragon)
+ */
+export function spawnMonsters(dungeon, depth, rng, { exclude = [] } = {}) {
   const monsters = [];
   const occupied = new Set();
   const eligible = MONSTER_TYPES.filter((t) => t.minDepth <= depth);
 
   // La première salle (départ du joueur) reste sûre.
   for (const room of dungeon.rooms.slice(1)) {
+    if (exclude.includes(room)) continue;
     const count = rng.int(0, maxPerRoom(depth));
     for (let i = 0; i < count; i++) {
       const pos = randomFloorInRoom(dungeon, room, rng);
@@ -55,4 +59,27 @@ export function spawnItems(dungeon, depth, rng) {
     items.push(createItem(randomItemType(depth, rng), pos.x, pos.y));
   }
   return items;
+}
+
+/**
+ * Fait apparaître jusqu'à `count` monstres d'un type donné autour d'un point (renforts),
+ * sur des cases libres à une distance de 1 ou 2. Les renforts sont immédiatement éveillés.
+ */
+export function spawnAround(center, typeId, count, depth, isFree) {
+  const type = MONSTER_TYPES.find((t) => t.id === typeId);
+  const spawned = [];
+  for (let radius = 1; radius <= 2 && spawned.length < count; radius++) {
+    for (let dy = -radius; dy <= radius && spawned.length < count; dy++) {
+      for (let dx = -radius; dx <= radius && spawned.length < count; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+        const x = center.x + dx;
+        const y = center.y + dy;
+        if (!isFree(x, y) || spawned.some((m) => m.x === x && m.y === y)) continue;
+        const monster = createMonster(type, x, y, { depth });
+        monster.awake = true;
+        spawned.push(monster);
+      }
+    }
+  }
+  return spawned;
 }

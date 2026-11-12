@@ -303,3 +303,61 @@ kbd {
     border-color: var(--border);
   }
 }
+
+/* Barre de vie du Dragon */
+.boss-bar {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 14px 10px;
+  background: rgba(13, 11, 18, 0.88);
+  border: 1px solid #5a2a10;
+  border-radius: 8px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.boss-bar[hidden] {
+  display: none;
+}
+
+.boss-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ff9f1c;
+  letter-spacing: 0.06em;
+}
+
+.boss-state {
+  color: var(--danger);
+}
+
+.boss-hp {
+  height: 8px;
+  background: #2a1a22;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.boss-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff5d3a, #ffd166);
+  transition: width 0.2s ease;
+}
+
+/* Écran de victoire (réutilise l'overlay de fin) */
+.overlay.victory h2 {
+  color: var(--accent);
+}
+
+.log li.fire {
+  color: #ff9f1c;
+  font-weight: 700;
+}

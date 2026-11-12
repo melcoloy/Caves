@@ -1,6 +1,6 @@
 # 🐉 Les Caves du Doudou
 
-Un roguelike au tour par tour jouable dans le navigateur. Descends dans les caves sous la Grand-Place de Mons, survis aux rats, gobelins, hommes de feuilles et diables et affronte le Dragon au plus profond du donjon.
+Un roguelike au tour par tour jouable dans le navigateur. Descends dans les 10 étages des caves sous la Grand-Place de Mons, survis aux rats, gobelins, hommes de feuilles et diables, puis affronte le Dragon au plus profond du donjon.
 
 Le joueur ne voit que ce qui est éclairé autour de lui ; les zones déjà explorées restent en mémoire, plus sombres.
 
@@ -30,6 +30,17 @@ Pour rejouer une graine précise : `index.html?seed=123456`.
 | `d` | Diable | 18 | 6 | 3 | 18 | 5 |
 
 Les monstres dorment jusqu'à ce que tu entres dans leur champ de vision, puis te poursuivent. Leur trajet suit une **carte de distances** calculée par parcours en largeur (BFS) depuis ta position : chaque monstre avance vers la case voisine la plus proche de toi. Tu récupères 1 PV tous les 8 tours.
+
+## Le Dragon du Doudou
+
+Au **10ᵉ et dernier étage**, il n'y a plus d'escalier : le Dragon t'attend dans la salle la plus éloignée. Comme au Lumeçon, c'est à toi, nouveau Saint-Georges, de le terrasser. Une grande potion de soin est posée près de l'entrée.
+
+| | |
+| --- | --- |
+| PV / Attaque / Défense | 95 / 9 / 4 |
+| Lenteur | ne se déplace qu'un tour sur deux (mais frappe à chaque tour au contact) |
+| Souffle de feu | il **inspire pendant un tour** (avertissement dans le journal, halo qui s'embrase), puis crache ses flammes s'il te voit encore à 6 cases ou moins : 8 à 12 dégâts qui ignorent la moitié de ta défense. **Casse la ligne de vue derrière un mur pour l'esquiver.** |
+| Rage | sous 50 % de PV : +3 attaque et deux hommes de feuilles accourent à son secours |
 
 ## Progression
 
@@ -70,7 +81,7 @@ Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera a
 - [x] **Itération 3 — Monstres** : bestiaire, IA de poursuite (carte de distances BFS), combat au tour par tour, écran de fin
 - [x] **Itération 4 — Objets** : potions, parchemins, armes, armures, inventaire de 9 places, butin des monstres
 - [x] **Itération 5 — Progression** : XP, niveaux, monstres renforcés en profondeur, élites
-- [ ] **Itération 6 — Le Dragon** : boss final
+- [x] **Itération 6 — Le Dragon** : boss final à la profondeur 10 (souffle de feu, rage, renforts), écran de victoire
 - [ ] **Itération 7 — Finitions** : sauvegarde, sons, écran de fin, scores
 
 ## Structure
@@ -86,6 +97,8 @@ src/
   pathfinding.js  carte de distances (BFS)
   ai.js           comportement des monstres
   combat.js       résolution des attaques
+  boss.js         le Dragon et son comportement
+  effects.js      effets visuels (flammes, ligne de Bresenham)
   progression.js  XP et niveaux
   items.js        catalogue des objets
   inventory.js    sac et équipement
