@@ -26,6 +26,7 @@ const PALETTE = {
 
 const PLAYER_COLOR = "#7fdbca";
 const DEAD_PLAYER_COLOR = "#e0524f";
+const REMEMBERED_ITEM_COLOR = "#4a4266";
 
 // Un mur n'est dessiné que s'il touche du sol : le reste de la roche reste noir.
 function isVisibleWall(dungeon, x, y) {
@@ -78,7 +79,7 @@ export function createRenderer(canvas) {
     }
   }
 
-  function draw(dungeon, player, monsters = [], dead = false) {
+  function draw(dungeon, player, monsters = [], items = [], dead = false) {
     ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -89,6 +90,15 @@ export function createRenderer(canvas) {
         } else if (dungeon.isExplored(x, y)) {
           drawTile(dungeon, x, y, PALETTE.remembered);
         }
+      }
+    }
+
+    // Objets au sol : couleur vive s'ils sont visibles, grisés s'ils sont seulement mémorisés.
+    for (const item of items) {
+      if (dungeon.isVisible(item.x, item.y)) {
+        glyph(item.glyph, item.x, item.y, item.color);
+      } else if (dungeon.isExplored(item.x, item.y)) {
+        glyph(item.glyph, item.x, item.y, REMEMBERED_ITEM_COLOR);
       }
     }
 
