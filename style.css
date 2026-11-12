@@ -100,6 +100,10 @@ canvas {
   color: var(--accent);
 }
 
+.log li.loot {
+  color: #8ecae6;
+}
+
 /* Points de vie */
 .hp {
   display: inline-flex;
@@ -165,4 +169,87 @@ kbd {
   font-size: 0.8rem;
   color: var(--muted);
   text-align: center;
+}
+
+/* Plateau + panneau latéral */
+.layout {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.panel {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.panel h2 {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.panel .count {
+  color: var(--muted);
+}
+
+.sheet {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+}
+
+.sheet dt {
+  color: var(--muted);
+}
+
+.sheet dd {
+  text-align: right;
+}
+
+.inventory {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inventory li {
+  display: grid;
+  grid-template-columns: 22px 14px 1fr;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.6em;
+}
+
+.inventory li.empty {
+  color: var(--border);
+}
+
+.inventory .glyph {
+  font-weight: 700;
+  text-align: center;
+}
+
+.inventory small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.panel-hint {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
 }

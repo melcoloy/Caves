@@ -141,6 +141,10 @@ export function generateDungeon(width, height, rng, options = {}) {
       visible[y * width + x] = 1;
       explored[y * width + x] = 1;
     },
+    /** Marque tout le niveau comme exploré (parchemin de clairvoyance). */
+    exploreAll() {
+      explored.fill(1);
+    },
     /** Part des cases praticables déjà découvertes (entre 0 et 1). */
     explorationRatio() {
       let seen = 0;

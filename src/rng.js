@@ -26,6 +26,16 @@ export function createRng(seed) {
     chance(p) {
       return next() < p;
     },
+    /** Élément tiré au hasard, proportionnellement à weightOf(élément). */
+    weighted(array, weightOf) {
+      const weights = array.map(weightOf);
+      let roll = next() * weights.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < array.length; i++) {
+        roll -= weights[i];
+        if (roll < 0) return array[i];
+      }
+      return array[array.length - 1];
+    },
   };
 }
 

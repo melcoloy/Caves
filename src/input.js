@@ -28,14 +28,25 @@ const BY_KEY = {
 const ACTION_KEYS = new Set(["Enter", " ", ">"]);
 const WAIT_KEYS = new Set(["x", "."]);
 
-export function bindInput(target, { onMove, onAction, onWait, onRestart }) {
+// Rangée de chiffres du clavier (pas le pavé numérique, réservé aux déplacements).
+// On lit event.code pour que « 1 » marche aussi en AZERTY sans Maj (touche « & »).
+function inventorySlot(code) {
+  const match = /^Digit([1-9])$/.exec(code);
+  return match ? Number(match[1]) - 1 : null;
+}
+
+export function bindInput(target, { onMove, onAction, onWait, onUseItem, onRestart }) {
   target.addEventListener("keydown", (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
 
     const key = event.key.toLowerCase();
     const dir = BY_CODE[event.code] ?? BY_KEY[key];
+    const slot = inventorySlot(event.code);
 
-    if (dir) {
+    if (slot !== null) {
+      event.preventDefault();
+      onUseItem(slot);
+    } else if (dir) {
       event.preventDefault();
       onMove(dir[0], dir[1]);
     } else if (ACTION_KEYS.has(event.key)) {
