@@ -27,6 +27,7 @@ const PALETTE = {
 const PLAYER_COLOR = "#7fdbca";
 const DEAD_PLAYER_COLOR = "#e0524f";
 const REMEMBERED_ITEM_COLOR = "#4a4266";
+const ELITE_HALO_COLOR = "#4a1c26";
 
 // Un mur n'est dessiné que s'il touche du sol : le reste de la roche reste noir.
 function isVisibleWall(dungeon, x, y) {
@@ -105,6 +106,8 @@ export function createRenderer(canvas) {
     // Les monstres ne sont affichés que s'ils sont dans le champ de vision.
     for (const monster of monsters) {
       if (dungeon.isVisible(monster.x, monster.y)) {
+        // Les élites sont signalées par un halo rouge sous leur glyphe.
+        if (monster.elite) cell(monster.x, monster.y, ELITE_HALO_COLOR);
         glyph(monster.glyph, monster.x, monster.y, monster.color);
       }
     }
