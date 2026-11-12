@@ -35,7 +35,7 @@ function inventorySlot(code) {
   return match ? Number(match[1]) - 1 : null;
 }
 
-export function bindInput(target, { onMove, onAction, onWait, onUseItem, onRestart }) {
+export function bindInput(target, { onMove, onAction, onWait, onUseItem, onRestart, onToggleMute }) {
   target.addEventListener("keydown", (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -57,6 +57,8 @@ export function bindInput(target, { onMove, onAction, onWait, onUseItem, onResta
       onWait();
     } else if (key === "r") {
       onRestart();
+    } else if (key === "m") {
+      onToggleMute();
     }
   });
 }

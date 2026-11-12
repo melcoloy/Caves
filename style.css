@@ -361,3 +361,51 @@ kbd {
   color: #ff9f1c;
   font-weight: 700;
 }
+
+/* Score et classement sur l'écran de fin */
+.score-line {
+  color: var(--text);
+}
+
+.score-line strong {
+  color: var(--accent);
+}
+
+.scores {
+  list-style: none;
+  counter-reset: rank;
+  width: min(460px, 90%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+}
+
+.scores li {
+  counter-increment: rank;
+  display: grid;
+  grid-template-columns: 2.2em 5em 1fr;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  color: var(--muted);
+  text-align: left;
+}
+
+.scores li::before {
+  content: "#" counter(rank);
+}
+
+.scores li.current {
+  background: rgba(242, 193, 78, 0.15);
+  color: var(--text);
+}
+
+.scores .points {
+  color: var(--accent);
+  text-align: right;
+}
+
+.sound-state.off {
+  color: var(--danger);
+}

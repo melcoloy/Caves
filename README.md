@@ -1,5 +1,12 @@
 # 🐉 Les Caves du Doudou
 
+[![Déploiement GitHub Pages](https://github.com/melcoloy/Caves/actions/workflows/pages.yml/badge.svg)](https://github.com/melcoloy/Caves/actions/workflows/pages.yml)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES_modules-f7df1e)
+![Dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-brightgreen)
+![Licence MIT](https://img.shields.io/badge/licence-MIT-blue)
+
+### ▶ [Jouer en ligne](https://melcoloy.github.io/Caves/)
+
 Un roguelike au tour par tour jouable dans le navigateur. Descends dans les 10 étages des caves sous la Grand-Place de Mons, survis aux rats, gobelins, hommes de feuilles et diables, puis affronte le Dragon au plus profond du donjon.
 
 Le joueur ne voit que ce qui est éclairé autour de lui ; les zones déjà explorées restent en mémoire, plus sombres.
@@ -15,8 +22,29 @@ Chaque partie génère des donjons différents à partir d'une **graine** (seed)
 | Attendre un tour | `X`, `.` ou `5` (pavé numérique) |
 | Descendre l'escalier `>` | `Entrée`, `Espace` ou `>` |
 | Nouvelle partie | `R` |
+| Couper / activer le son | `M` |
 
 Pour rejouer une graine précise : `index.html?seed=123456`.
+
+## Sauvegarde, scores et sons
+
+- **Sauvegarde automatique** après chaque tour (dans le navigateur, `localStorage`) : ferme l'onglet et reprends plus tard exactement où tu en étais. Roguelike oblige, la sauvegarde disparaît à la mort.
+- **Tableau des scores** (top 10) affiché en fin de partie. Score = 10 par monstre + 100 par étage descendu + 25 par niveau gagné, et pour une victoire 1 000 points + un bonus de rapidité.
+- **Effets sonores** synthétisés en direct avec la Web Audio API : aucun fichier audio.
+
+## Sous le capot
+
+Du JavaScript natif en modules ES, sans framework ni dépendance ni étape de compilation.
+
+| Technique | Où |
+| --- | --- |
+| Générateur pseudo-aléatoire à graine (mulberry32), état sauvegardable | `rng.js` |
+| Génération procédurale de salles et couloirs | `dungeon.js` |
+| Champ de vision par *shadowcasting* récursif | `fov.js` |
+| Carte de distances par parcours en largeur (BFS) pour guider tous les monstres | `pathfinding.js`, `ai.js` |
+| Tracé de segment de Bresenham (souffle du Dragon) | `effects.js` |
+| Synthèse sonore (oscillateurs, bruit filtré) | `audio.js` |
+| Déploiement continu sur GitHub Pages via GitHub Actions | `.github/workflows/pages.yml` |
 
 ## Bestiaire
 
@@ -70,9 +98,9 @@ Le jeu utilise des modules ES : il doit être servi par un serveur HTTP (ouvrir 
 - **VS Code** : extension *Live Server* → clic droit sur `index.html` → *Open with Live Server*
 - **Terminal** : `npx serve .` ou `python -m http.server`
 
-## Mettre en ligne
+## Mise en ligne
 
-Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera accessible sur **https://melcoloy.github.io/Caves/**.
+Le workflow `.github/workflows/pages.yml` publie automatiquement le jeu à chaque push sur `main`. À activer une seule fois : **Settings → Pages → Source : GitHub Actions**. Le jeu est alors accessible sur **https://melcoloy.github.io/Caves/**.
 
 ## Feuille de route
 
@@ -82,7 +110,7 @@ Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera a
 - [x] **Itération 4 — Objets** : potions, parchemins, armes, armures, inventaire de 9 places, butin des monstres
 - [x] **Itération 5 — Progression** : XP, niveaux, monstres renforcés en profondeur, élites
 - [x] **Itération 6 — Le Dragon** : boss final à la profondeur 10 (souffle de feu, rage, renforts), écran de victoire
-- [ ] **Itération 7 — Finitions** : sauvegarde, sons, écran de fin, scores
+- [x] **Itération 7 — Finitions** : sauvegarde automatique, tableau des scores, effets sonores, déploiement continu, licence
 
 ## Structure
 
@@ -100,6 +128,9 @@ src/
   boss.js         le Dragon et son comportement
   effects.js      effets visuels (flammes, ligne de Bresenham)
   progression.js  XP et niveaux
+  save.js         sauvegarde automatique
+  scores.js       tableau des scores
+  audio.js        effets sonores
   items.js        catalogue des objets
   inventory.js    sac et équipement
   dungeon.js      génération du donjon
@@ -107,3 +138,7 @@ src/
   input.js        gestion du clavier
   main.js         boucle de jeu et état
 ```
+
+## Licence
+
+[MIT](LICENSE) © 2026 Clément Leroy

@@ -1,7 +1,7 @@
 // Point d'entrée : état de la partie, logique des tours et liaison avec l'interface.
 
 import { createRng, randomSeed } from "./rng.js";
-import { generateDungeon, TILE } from "./dungeon.js";
+import { generateDungeon, restoreDungeon, TILE } from "./dungeon.js";
 import { createRenderer } from "./render.js";
 import { bindInput } from "./input.js";
 import { computeFov } from "./fov.js";
@@ -13,6 +13,9 @@ import { nameOf } from "./monsters.js";
 import { gainXp, xpToNextLevel } from "./progression.js";
 import { FINAL_DEPTH, createDragon, decideBossAction, breathDamage, shouldEnrage, enrage } from "./boss.js";
 import { flameTrail } from "./effects.js";
+import { saveGame, loadGame, clearSave } from "./save.js";
+import { computeScore, recordScore } from "./scores.js";
+import { play, toggleMute, isMuted } from "./audio.js";
 import { ITEM_TYPES, createItem, randomItemType, itemLabel, itemSummary } from "./items.js";
 import {
   INVENTORY_SIZE,
@@ -58,6 +61,9 @@ const ui = {
   bossBar: document.getElementById("boss-bar"),
   bossFill: document.getElementById("boss-fill"),
   bossState: document.getElementById("boss-state"),
+  scoreLine: document.getElementById("score-line"),
+  scores: document.getElementById("scores"),
+  soundState: document.getElementById("sound-state"),
 };
 
 const renderer = createRenderer(ui.canvas);
@@ -77,8 +83,8 @@ function createPlayer() {
   return player;
 }
 
-function newGame(seed = randomSeed()) {
-  state = {
+function freshState(seed) {
+  return {
     seed,
     // Deux générateurs séparés : les niveaux ne dépendent que de la graine,
     // pas de la façon dont se sont déroulés les combats.
@@ -98,11 +104,43 @@ function newGame(seed = randomSeed()) {
     inventory: createInventory(),
     messages: [],
   };
+}
+
+function resetScreen() {
   ui.log.innerHTML = "";
   ui.gameover.hidden = true;
   ui.gameover.classList.remove("victory");
+}
+
+function newGame(seed = randomSeed()) {
+  clearSave();
+  state = freshState(seed);
+  resetScreen();
   enterLevel();
   log("Tu descends dans les caves sous la Grand-Place…");
+  saveGame(state);
+  render();
+}
+
+// Reprend la partie sauvegardée là où elle s'était arrêtée.
+function resumeGame(data) {
+  state = {
+    ...freshState(data.seed),
+    depth: data.depth,
+    turns: data.turns,
+    kills: data.kills,
+    dungeon: restoreDungeon(data.dungeon),
+    monsters: data.monsters,
+    items: data.items,
+    player: data.player,
+    inventory: data.inventory,
+    messages: data.messages,
+  };
+  state.levelRng.setState(data.levelRng);
+  state.combatRng.setState(data.combatRng);
+  resetScreen();
+  updateFov();
+  log("Partie reprise. Bon retour dans les caves !", "loot");
   render();
 }
 
@@ -213,13 +251,16 @@ function pickUp() {
   state.items = state.items.filter((i) => i !== item);
   const slot = state.inventory.items.length;
   log(`Tu ramasses ${itemLabel(item)}. (touche ${slot})`, "loot");
+  play("pickup");
 }
 
 function playerAttack(monster) {
   const result = attack(state.player, monster, state.combatRng);
   if (!result.hit) {
     log(`Tu rates ${nameOf(monster)}.`);
+    play("miss");
   } else if (result.killed) {
+    play("kill");
     state.monsters = state.monsters.filter((m) => m !== monster);
     state.kills++;
     log(`Tu terrasses ${nameOf(monster)} ! (+${monster.xp} XP)`, "kill");
@@ -231,6 +272,7 @@ function playerAttack(monster) {
     dropLoot(monster);
   } else {
     log(`Tu frappes ${nameOf(monster)} (−${result.damage}).`, "hit");
+    play("hit");
     if (monster.boss && shouldEnrage(monster)) dragonRage(monster);
   }
 }
@@ -241,6 +283,7 @@ function dragonRage(dragon) {
   const helpers = spawnAround(dragon, "leafman", 2, FINAL_DEPTH - 4, isFreeTile);
   state.monsters.push(...helpers);
   log("Le Dragon rugit de rage ! Des hommes de feuilles accourent à son secours !", "fire");
+  play("roar");
 }
 
 function earnXp(amount) {
@@ -250,6 +293,7 @@ function earnXp(amount) {
     if (gain.defense) bonuses.push(`+${gain.defense} DÉF`);
     log(`Tu passes au niveau ${gain.level} ! (${bonuses.join(", ")}, PV restaurés)`, "level");
     flashLevelUp();
+    play("levelup");
   }
   recomputeStats(player, state.inventory);
 }
@@ -278,6 +322,7 @@ function useItem(index) {
     const previous = equip(player, state.inventory, index);
     const swap = previous ? ` (${itemLabel(previous)} retourne dans le sac)` : "";
     log(`Tu équipes ${itemLabel(item)}${swap}.`, "loot");
+    play("pickup");
   } else if (item.effect === "heal") {
     if (player.hp === player.maxHp) {
       log("Tu es déjà en pleine forme.");
@@ -287,14 +332,17 @@ function useItem(index) {
     const healed = Math.min(item.amount, player.maxHp - player.hp);
     player.hp += healed;
     log(`Tu bois ${itemLabel(item)} (+${healed} PV).`, "hit");
+    play("heal");
   } else if (item.effect === "reveal") {
     removeAt(state.inventory, index);
     state.dungeon.exploreAll();
     log("Le parchemin s'embrase : le plan de l'étage apparaît dans ton esprit.", "loot");
+    play("magic");
   } else if (item.effect === "teleport") {
     removeAt(state.inventory, index);
     teleportPlayer();
     log("Le parchemin t'emporte ailleurs dans l'étage !", "loot");
+    play("magic");
   }
   endTurn();
 }
@@ -326,6 +374,7 @@ function descend() {
   }
   state.depth++;
   enterLevel();
+  play("stairs");
   if (isFinalLevel()) {
     log("Tu pénètres dans l'antre du Dragon. Il n'y a plus d'escalier : la seule issue est la victoire.", "fire");
   } else if (state.depth === FINAL_DEPTH - 1) {
@@ -333,6 +382,7 @@ function descend() {
   } else {
     log(`Tu descends à la profondeur ${state.depth}. L'air devient plus froid.`);
   }
+  saveGame(state);
   render();
 }
 
@@ -377,6 +427,7 @@ function monsterAttack(monster) {
     log(`${nameOf(monster, true)} te rate.`);
   } else {
     log(`${nameOf(monster, true)} ${monster.verb} (−${result.damage}).`, "damage");
+    play("hurt");
   }
   if (result.killed) {
     die(monster);
@@ -391,9 +442,11 @@ function bossSpecial(dragon, action) {
   switch (action.type) {
     case "roar":
       log("Un rugissement fait trembler la roche : le Dragon du Doudou s'éveille !", "fire");
+      play("roar");
       break;
     case "charge":
       log("Le Dragon prend une grande inspiration… mets-toi à l'abri derrière un mur !", "fire");
+      play("charge");
       break;
     case "fizzle":
       log("Les flammes du Dragon lèchent la roche sans t'atteindre.");
@@ -403,6 +456,7 @@ function bossSpecial(dragon, action) {
       player.hp = Math.max(0, player.hp - damage);
       state.effects = flameTrail(dragon, player);
       log(`Le Dragon crache un torrent de flammes ! (−${damage})`, "fire");
+      play("breath");
       if (player.hp === 0) {
         die(dragon);
         return true;
@@ -424,6 +478,7 @@ function endTurn() {
   const { player } = state;
   if (state.turns % REGEN_EVERY === 0 && player.hp < player.maxHp) player.hp++;
   monstersAct();
+  if (!state.over) saveGame(state);
   render();
 }
 
@@ -441,7 +496,8 @@ function die(killer) {
   ui.gameoverText.textContent =
     `Tué par ${nameOf(killer)} à la profondeur ${state.depth}, au niveau ${state.player.level}, ` +
     `après ${state.turns} tours et ${monstersDefeated()}.`;
-  ui.gameover.hidden = false;
+  play("death");
+  finishGame();
 }
 
 function victory() {
@@ -453,6 +509,47 @@ function victory() {
     `Tel Saint-Georges, tu as terrassé le Dragon en ${state.turns} tours, ` +
     `au niveau ${state.player.level}, avec ${monstersDefeated()}.`;
   ui.gameover.classList.add("victory");
+  play("victory");
+  finishGame();
+}
+
+// Partie terminée : la sauvegarde disparaît et le score entre au classement.
+function finishGame() {
+  clearSave();
+  const { player } = state;
+  const entry = {
+    score: computeScore({
+      depth: state.depth,
+      kills: state.kills,
+      level: player.level,
+      won: state.won,
+      turns: state.turns,
+    }),
+    depth: state.depth,
+    level: player.level,
+    kills: state.kills,
+    turns: state.turns,
+    won: state.won,
+    seed: state.seed,
+    date: new Date().toLocaleDateString("fr-BE"),
+  };
+  const { scores, rank } = recordScore(entry);
+
+  let rankText = "";
+  if (rank === 1) rankText = " — nouveau record !";
+  else if (rank) rankText = ` — ${rank}ᵉ place`;
+  ui.scoreLine.innerHTML = `Score : <strong>${entry.score}</strong>${rankText}`;
+  ui.scores.innerHTML = scores
+    .slice(0, 5)
+    .map((s) => {
+      const outcome = s.won ? "★ victoire" : `profondeur ${s.depth}`;
+      return (
+        `<li class="${s === entry ? "current" : ""}">` +
+        `<span class="points">${s.score}</span>` +
+        `<span>${outcome} · niv. ${s.level} · ${s.date}</span></li>`
+      );
+    })
+    .join("");
   ui.gameover.hidden = false;
 }
 
@@ -510,15 +607,36 @@ function render() {
   renderInventory();
 }
 
+function renderSoundState() {
+  const muted = isMuted();
+  ui.soundState.textContent = muted ? "coupé" : "activé";
+  ui.soundState.classList.toggle("off", muted);
+}
+
+function onToggleMute() {
+  const muted = toggleMute();
+  renderSoundState();
+  log(muted ? "Son coupé." : "Son activé.");
+}
+
 bindInput(window, {
   onMove: playerMove,
   onAction: descend,
   onWait: playerWait,
   onUseItem: useItem,
   onRestart: () => newGame(),
+  onToggleMute,
 });
 
-newGame(readSeedFromUrl() ?? randomSeed());
+// Au chargement : on reprend la partie en cours, sauf si une graine est imposée dans l'URL.
+const urlSeed = readSeedFromUrl();
+const saved = urlSeed === null ? loadGame() : null;
+if (saved) {
+  resumeGame(saved);
+} else {
+  newGame(urlSeed ?? randomSeed());
+}
+renderSoundState();
 
 // La police web peut arriver après le premier rendu : on redessine une fois chargée.
 document.fonts?.ready.then(render);

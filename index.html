@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Les Caves du Doudou</title>
+  <meta name="description" content="Roguelike au tour par tour dans les caves de Mons : 10 étages générés aléatoirement, des monstres, du butin et le Dragon du Doudou à terrasser." />
+  <meta property="og:title" content="Les Caves du Doudou" />
+  <meta property="og:description" content="Descends dans les caves sous la Grand-Place de Mons et terrasse le Dragon du Doudou." />
+  <meta property="og:type" content="website" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐉</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
@@ -35,6 +39,8 @@
         <div id="gameover" class="overlay" hidden>
           <h2 id="gameover-title">Tu as péri dans les caves</h2>
           <p id="gameover-text"></p>
+          <p id="score-line" class="score-line"></p>
+          <ol id="scores" class="scores"></ol>
           <p class="hint">Appuie sur <kbd>R</kbd> pour recommencer</p>
         </div>
       </div>
@@ -65,7 +71,8 @@
     <ul id="log" class="log" aria-live="polite"></ul>
 
     <footer class="help">
-      Flèches / ZQSD : se déplacer et attaquer · 1–9 : objets · X / 5 : attendre · Entrée : descendre · R : nouvelle partie
+      Flèches / ZQSD : se déplacer et attaquer · 1–9 : objets · X / 5 : attendre · Entrée : descendre · R : nouvelle partie ·
+      M : son <span id="sound-state" class="sound-state">activé</span>
     </footer>
   </main>
 
