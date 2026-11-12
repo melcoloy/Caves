@@ -5,13 +5,15 @@ import { generateDungeon, TILE } from "./dungeon.js";
 import { createRenderer } from "./render.js";
 import { bindInput } from "./input.js";
 import { computeFov } from "./fov.js";
-import { spawnMonsters, spawnItems } from "./spawn.js";
+import { spawnMonsters, spawnItems, spawnAround } from "./spawn.js";
 import { distanceMap } from "./pathfinding.js";
 import { decideAction } from "./ai.js";
 import { attack } from "./combat.js";
 import { nameOf } from "./monsters.js";
 import { gainXp, xpToNextLevel } from "./progression.js";
-import { createItem, randomItemType, itemLabel, itemSummary } from "./items.js";
+import { FINAL_DEPTH, createDragon, decideBossAction, breathDamage, shouldEnrage, enrage } from "./boss.js";
+import { flameTrail } from "./effects.js";
+import { ITEM_TYPES, createItem, randomItemType, itemLabel, itemSummary } from "./items.js";
 import {
   INVENTORY_SIZE,
   createInventory,
@@ -52,6 +54,10 @@ const ui = {
   level: document.getElementById("level"),
   xp: document.getElementById("xp"),
   xpFill: document.getElementById("xp-fill"),
+  gameoverTitle: document.getElementById("gameover-title"),
+  bossBar: document.getElementById("boss-bar"),
+  bossFill: document.getElementById("boss-fill"),
+  bossState: document.getElementById("boss-state"),
 };
 
 const renderer = createRenderer(ui.canvas);
@@ -81,7 +87,10 @@ function newGame(seed = randomSeed()) {
     depth: 1,
     turns: 0,
     kills: 0,
+    over: false, // partie terminée (mort ou victoire) : plus aucune action possible
     dead: false,
+    won: false,
+    effects: [],
     dungeon: null,
     monsters: [],
     items: [],
@@ -91,18 +100,50 @@ function newGame(seed = randomSeed()) {
   };
   ui.log.innerHTML = "";
   ui.gameover.hidden = true;
+  ui.gameover.classList.remove("victory");
   enterLevel();
   log("Tu descends dans les caves sous la Grand-Place…");
   render();
 }
 
+function isFinalLevel() {
+  return state.depth === FINAL_DEPTH;
+}
+
 function enterLevel() {
-  state.dungeon = generateDungeon(MAP_WIDTH, MAP_HEIGHT, state.levelRng);
-  state.monsters = spawnMonsters(state.dungeon, state.depth, state.levelRng);
-  state.items = spawnItems(state.dungeon, state.depth, state.levelRng);
-  state.player.x = state.dungeon.start.x;
-  state.player.y = state.dungeon.start.y;
+  const final = isFinalLevel();
+  const rng = state.levelRng;
+  state.dungeon = generateDungeon(MAP_WIDTH, MAP_HEIGHT, rng, { withStairs: !final });
+  const { dungeon } = state;
+
+  // Au dernier étage, l'antre (salle la plus éloignée) est réservée au Dragon.
+  state.monsters = spawnMonsters(dungeon, state.depth, rng, {
+    exclude: final ? [dungeon.exitRoom] : [],
+  });
+  state.items = spawnItems(dungeon, state.depth, rng);
+  if (final) {
+    state.monsters.push(createDragon(dungeon.stairs.x, dungeon.stairs.y));
+    placeLastGift();
+  }
+
+  state.player.x = dungeon.start.x;
+  state.player.y = dungeon.start.y;
+  state.effects = [];
   updateFov();
+}
+
+// Une grande potion offerte à côté de l'entrée de l'antre, pour aborder le combat final.
+function placeLastGift() {
+  const { dungeon } = state;
+  const type = ITEM_TYPES.find((t) => t.id === "big-potion");
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+    const x = dungeon.start.x + dx;
+    const y = dungeon.start.y + dy;
+    if (dungeon.get(x, y) === TILE.FLOOR && !itemAt(x, y)) {
+      state.items.push(createItem(type, x, y));
+      return;
+    }
+  }
 }
 
 // Recalcule ce que le joueur voit depuis sa position actuelle.
@@ -142,7 +183,7 @@ function onStairs() {
 // ---- Actions du joueur -------------------------------------------------
 
 function playerMove(dx, dy) {
-  if (state.dead) return;
+  if (state.over) return;
   const nx = state.player.x + dx;
   const ny = state.player.y + dy;
 
@@ -182,11 +223,24 @@ function playerAttack(monster) {
     state.monsters = state.monsters.filter((m) => m !== monster);
     state.kills++;
     log(`Tu terrasses ${nameOf(monster)} ! (+${monster.xp} XP)`, "kill");
-    dropLoot(monster);
     earnXp(monster.xp);
+    if (monster.boss) {
+      victory();
+      return;
+    }
+    dropLoot(monster);
   } else {
     log(`Tu frappes ${nameOf(monster)} (−${result.damage}).`, "hit");
+    if (monster.boss && shouldEnrage(monster)) dragonRage(monster);
   }
+}
+
+// Sous 50 % de PV, le Dragon enrage et les hommes de feuilles accourent, comme au Lumeçon.
+function dragonRage(dragon) {
+  enrage(dragon);
+  const helpers = spawnAround(dragon, "leafman", 2, FINAL_DEPTH - 4, isFreeTile);
+  state.monsters.push(...helpers);
+  log("Le Dragon rugit de rage ! Des hommes de feuilles accourent à son secours !", "fire");
 }
 
 function earnXp(amount) {
@@ -215,7 +269,7 @@ function dropLoot(monster) {
 }
 
 function useItem(index) {
-  if (state.dead) return;
+  if (state.over) return;
   const item = state.inventory.items[index];
   if (!item) return;
   const { player } = state;
@@ -260,71 +314,145 @@ function teleportPlayer() {
 }
 
 function playerWait() {
-  if (state.dead) return;
+  if (state.over) return;
   endTurn();
 }
 
 function descend() {
-  if (state.dead) return;
+  if (state.over) return;
   if (!onStairs()) {
     log("Il n'y a pas d'escalier ici.");
     return;
   }
   state.depth++;
   enterLevel();
-  log(`Tu descends à la profondeur ${state.depth}. L'air devient plus froid.`);
+  if (isFinalLevel()) {
+    log("Tu pénètres dans l'antre du Dragon. Il n'y a plus d'escalier : la seule issue est la victoire.", "fire");
+  } else if (state.depth === FINAL_DEPTH - 1) {
+    log(`Profondeur ${state.depth}. Une chaleur étouffante monte des profondeurs…`, "fire");
+  } else {
+    log(`Tu descends à la profondeur ${state.depth}. L'air devient plus froid.`);
+  }
   render();
 }
 
 // ---- Tour des monstres --------------------------------------------------
 
+function isFreeTile(x, y) {
+  const { dungeon, player } = state;
+  return dungeon.isWalkable(x, y) && !monsterAt(x, y) && !(x === player.x && y === player.y);
+}
+
 function monstersAct() {
   const { dungeon, player } = state;
-  const distances = distanceMap(dungeon, player.x, player.y);
-  const isFree = (x, y) =>
-    dungeon.isWalkable(x, y) && !monsterAt(x, y) && !(x === player.x && y === player.y);
+  const context = {
+    dungeon,
+    player,
+    distances: distanceMap(dungeon, player.x, player.y),
+    isFree: isFreeTile,
+    rng: state.combatRng,
+  };
 
-  for (const monster of state.monsters) {
-    const action = decideAction(monster, {
-      dungeon,
-      player,
-      distances,
-      isFree,
-      rng: state.combatRng,
-    });
+  // Copie : des renforts peuvent rejoindre la liste pendant le tour.
+  for (const monster of [...state.monsters]) {
+    const action = monster.boss
+      ? decideBossAction(monster, context)
+      : decideAction(monster, context);
 
     if (action.type === "move") {
       monster.x = action.x;
       monster.y = action.y;
     } else if (action.type === "attack") {
-      const result = attack(monster, player, state.combatRng);
-      if (!result.hit) {
-        log(`${nameOf(monster, true)} te rate.`);
-      } else {
-        log(`${nameOf(monster, true)} ${monster.verb} (−${result.damage}).`, "damage");
-      }
-      if (result.killed) {
-        die(monster);
-        return;
-      }
+      if (monsterAttack(monster)) return;
+    } else if (monster.boss && bossSpecial(monster, action)) {
+      return;
     }
   }
 }
 
+/** @returns true si le joueur est mort */
+function monsterAttack(monster) {
+  const result = attack(monster, state.player, state.combatRng);
+  if (!result.hit) {
+    log(`${nameOf(monster, true)} te rate.`);
+  } else {
+    log(`${nameOf(monster, true)} ${monster.verb} (−${result.damage}).`, "damage");
+  }
+  if (result.killed) {
+    die(monster);
+    return true;
+  }
+  return false;
+}
+
+/** Actions propres au Dragon. @returns true si le joueur est mort */
+function bossSpecial(dragon, action) {
+  const { player } = state;
+  switch (action.type) {
+    case "roar":
+      log("Un rugissement fait trembler la roche : le Dragon du Doudou s'éveille !", "fire");
+      break;
+    case "charge":
+      log("Le Dragon prend une grande inspiration… mets-toi à l'abri derrière un mur !", "fire");
+      break;
+    case "fizzle":
+      log("Les flammes du Dragon lèchent la roche sans t'atteindre.");
+      break;
+    case "breath": {
+      const damage = breathDamage(player, state.combatRng);
+      player.hp = Math.max(0, player.hp - damage);
+      state.effects = flameTrail(dragon, player);
+      log(`Le Dragon crache un torrent de flammes ! (−${damage})`, "fire");
+      if (player.hp === 0) {
+        die(dragon);
+        return true;
+      }
+      break;
+    }
+  }
+  return false;
+}
+
 function endTurn() {
   state.turns++;
+  state.effects = [];
+  if (state.over) {
+    // La partie vient de se terminer (victoire) : les monstres restants ne jouent plus.
+    render();
+    return;
+  }
   const { player } = state;
   if (state.turns % REGEN_EVERY === 0 && player.hp < player.maxHp) player.hp++;
   monstersAct();
   render();
 }
 
+// « 1 monstre vaincu », « 12 monstres vaincus »
+function monstersDefeated() {
+  const plural = state.kills > 1 ? "s" : "";
+  return `${state.kills} monstre${plural} vaincu${plural}`;
+}
+
 function die(killer) {
+  state.over = true;
   state.dead = true;
   log(`${nameOf(killer, true)} t'a vaincu…`, "damage");
+  ui.gameoverTitle.textContent = "Tu as péri dans les caves";
   ui.gameoverText.textContent =
     `Tué par ${nameOf(killer)} à la profondeur ${state.depth}, au niveau ${state.player.level}, ` +
-    `après ${state.turns} tours et ${state.kills} monstre${state.kills > 1 ? "s" : ""} vaincu${state.kills > 1 ? "s" : ""}.`;
+    `après ${state.turns} tours et ${monstersDefeated()}.`;
+  ui.gameover.hidden = false;
+}
+
+function victory() {
+  state.over = true;
+  state.won = true;
+  log("Le Dragon du Doudou s'effondre ! Mons est sauvée !", "level");
+  ui.gameoverTitle.textContent = "Le Doudou est vaincu !";
+  ui.gameoverText.textContent =
+    `Tel Saint-Georges, tu as terrassé le Dragon en ${state.turns} tours, ` +
+    `au niveau ${state.player.level}, avec ${monstersDefeated()}.`;
+  ui.gameover.classList.add("victory");
   ui.gameover.hidden = false;
 }
 
@@ -356,16 +484,26 @@ function renderInventory() {
   ui.inventory.innerHTML = rows.join("");
 }
 
+// La barre du boss apparaît dès que le Dragon est réveillé.
+function renderBossBar() {
+  const dragon = state.monsters.find((m) => m.boss);
+  ui.bossBar.hidden = !dragon || !dragon.awake;
+  if (!dragon) return;
+  ui.bossFill.style.width = `${(dragon.hp / dragon.maxHp) * 100}%`;
+  ui.bossState.textContent = dragon.charging ? "· inspire…" : dragon.enraged ? "· enragé" : "";
+}
+
 function render() {
   const { player } = state;
-  renderer.draw(state.dungeon, player, state.monsters, state.items, state.dead);
+  renderer.draw(state.dungeon, player, state.monsters, state.items, state.dead, state.effects);
 
   ui.hp.textContent = `${player.hp}/${player.maxHp}`;
   const ratio = player.hp / player.maxHp;
   ui.hpFill.style.width = `${ratio * 100}%`;
   ui.hpFill.classList.toggle("low", ratio <= 0.3);
 
-  ui.depth.textContent = state.depth;
+  ui.depth.textContent = `${state.depth} / ${FINAL_DEPTH}`;
+  renderBossBar();
   ui.turns.textContent = state.turns;
   ui.explored.textContent = `${Math.round(state.dungeon.explorationRatio() * 100)} %`;
   ui.seed.textContent = state.seed;
