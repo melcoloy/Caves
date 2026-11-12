@@ -25,19 +25,39 @@
       </div>
     </header>
 
-    <div class="board">
-      <canvas id="screen" aria-label="Carte du donjon"></canvas>
-      <div id="gameover" class="overlay" hidden>
-        <h2>Tu as péri dans les caves</h2>
-        <p id="gameover-text"></p>
-        <p class="hint">Appuie sur <kbd>R</kbd> pour recommencer</p>
+    <div class="layout">
+      <div class="board">
+        <canvas id="screen" aria-label="Carte du donjon"></canvas>
+        <div id="gameover" class="overlay" hidden>
+          <h2>Tu as péri dans les caves</h2>
+          <p id="gameover-text"></p>
+          <p class="hint">Appuie sur <kbd>R</kbd> pour recommencer</p>
+        </div>
       </div>
+
+      <aside class="panel">
+        <section>
+          <h2>Personnage</h2>
+          <dl class="sheet">
+            <dt>Attaque</dt><dd id="atk">5</dd>
+            <dt>Défense</dt><dd id="def">1</dd>
+            <dt>Arme</dt><dd id="weapon">poings</dd>
+            <dt>Armure</dt><dd id="armor">aucune</dd>
+            <dt>Victimes</dt><dd id="kills">0</dd>
+          </dl>
+        </section>
+        <section>
+          <h2>Sac <span id="bag-count" class="count">0/9</span></h2>
+          <ol id="inventory" class="inventory"></ol>
+          <p class="panel-hint">Touches <kbd>1</kbd>–<kbd>9</kbd> : utiliser ou équiper</p>
+        </section>
+      </aside>
     </div>
 
     <ul id="log" class="log" aria-live="polite"></ul>
 
     <footer class="help">
-      Flèches / ZQSD : se déplacer et attaquer · X / 5 : attendre · Entrée : descendre · R : nouvelle partie
+      Flèches / ZQSD : se déplacer et attaquer · 1–9 : objets · X / 5 : attendre · Entrée : descendre · R : nouvelle partie
     </footer>
   </main>
 
