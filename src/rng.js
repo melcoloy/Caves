@@ -14,6 +14,13 @@ export function createRng(seed) {
 
   return {
     next,
+    /** État interne, pour sauvegarder puis reprendre exactement la même suite. */
+    getState() {
+      return state;
+    },
+    setState(value) {
+      state = value >>> 0;
+    },
     /** Entier aléatoire entre min et max inclus. */
     int(min, max) {
       return min + Math.floor(next() * (max - min + 1));
