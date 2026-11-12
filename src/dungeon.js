@@ -105,9 +105,36 @@ export function generateDungeon(width, height, rng, options = {}) {
   const stairs = center(exitRoom);
   if (opts.withStairs) tiles[stairs.y * width + stairs.x] = TILE.STAIRS;
 
+  return buildDungeon({
+    width,
+    height,
+    tiles,
+    rooms,
+    start,
+    stairs,
+    exitRoom,
+    explored: new Uint8Array(width * height),
+  });
+}
+
+/** Recrée un donjon à partir des données produites par `serialize()`. */
+export function restoreDungeon(data) {
+  const toBytes = (text) => Uint8Array.from(text, Number);
+  return buildDungeon({
+    width: data.width,
+    height: data.height,
+    tiles: toBytes(data.tiles),
+    rooms: data.rooms,
+    start: data.start,
+    stairs: data.stairs,
+    exitRoom: data.rooms[data.exitRoomIndex],
+    explored: toBytes(data.explored),
+  });
+}
+
+function buildDungeon({ width, height, tiles, rooms, start, stairs, exitRoom, explored }) {
   // Vision : `visible` = vu ce tour-ci, `explored` = déjà vu au moins une fois.
   const visible = new Uint8Array(width * height);
-  const explored = new Uint8Array(width * height);
   const walkableCount = tiles.reduce((n, t) => n + (t !== TILE.WALL ? 1 : 0), 0);
 
   return {
@@ -155,6 +182,19 @@ export function generateDungeon(width, height, rng, options = {}) {
         if (tiles[i] !== TILE.WALL && explored[i]) seen++;
       }
       return seen / walkableCount;
+    },
+    /** Données compactes (chaînes de chiffres) pour la sauvegarde. */
+    serialize() {
+      return {
+        width,
+        height,
+        tiles: tiles.join(""),
+        rooms,
+        start,
+        stairs,
+        exitRoomIndex: rooms.indexOf(exitRoom),
+        explored: explored.join(""),
+      };
     },
   };
 }
