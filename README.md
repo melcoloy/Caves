@@ -20,16 +20,24 @@ Pour rejouer une graine précise : `index.html?seed=123456`.
 
 ## Bestiaire
 
-| Glyphe | Créature | PV | Attaque | Défense | Dès la profondeur |
-| --- | --- | --- | --- | --- | --- |
-| `r` | Rat d'égout | 4 | 2 | 0 | 1 |
-| `b` | Chauve-souris | 3 | 2 | 0 | 1 |
-| `g` | Gobelin | 7 | 3 | 1 | 2 |
-| `s` | Squelette | 10 | 4 | 1 | 3 |
-| `h` | Homme de feuilles | 14 | 5 | 2 | 4 |
-| `d` | Diable | 18 | 6 | 3 | 5 |
+| Glyphe | Créature | PV | Attaque | Défense | XP | Dès la profondeur |
+| --- | --- | --- | --- | --- | --- | --- |
+| `r` | Rat d'égout | 4 | 2 | 0 | 2 | 1 |
+| `b` | Chauve-souris | 3 | 2 | 0 | 2 | 1 |
+| `g` | Gobelin | 7 | 3 | 1 | 5 | 2 |
+| `s` | Squelette | 10 | 4 | 1 | 8 | 3 |
+| `h` | Homme de feuilles | 14 | 5 | 2 | 12 | 4 |
+| `d` | Diable | 18 | 6 | 3 | 18 | 5 |
 
 Les monstres dorment jusqu'à ce que tu entres dans leur champ de vision, puis te poursuivent. Leur trajet suit une **carte de distances** calculée par parcours en largeur (BFS) depuis ta position : chaque monstre avance vers la case voisine la plus proche de toi. Tu récupères 1 PV tous les 8 tours.
+
+## Progression
+
+Chaque monstre vaincu rapporte de l'**XP**. L'XP nécessaire pour monter de niveau croît en `12 × niveau^1,4` (12, 32, 56, 84…). À chaque niveau : **+5 PV max, +1 attaque, +1 défense tous les 3 niveaux**, et les PV sont restaurés.
+
+Le donjon devient plus dur en profondeur :
+- les monstres gagnent +20 % de PV par étage au-delà de leur étage d'apparition, ainsi que de l'attaque et de la défense ;
+- dès la profondeur 3 apparaissent des **élites** (glyphe en majuscule sur fond rouge, par ex. `G`) : +50 % PV, +2 ATQ, +1 DÉF, XP doublée. Leur fréquence augmente de 4 % par étage (25 % au maximum).
 
 ## Objets
 
@@ -61,7 +69,7 @@ Settings → Pages → *Deploy from a branch* → `main` / `root`. Le jeu sera a
 - [x] **Itération 2 — Vision** : champ de vision (shadowcasting), brouillard de guerre, % d'exploration
 - [x] **Itération 3 — Monstres** : bestiaire, IA de poursuite (carte de distances BFS), combat au tour par tour, écran de fin
 - [x] **Itération 4 — Objets** : potions, parchemins, armes, armures, inventaire de 9 places, butin des monstres
-- [ ] **Itération 5 — Progression** : XP, niveaux, difficulté selon la profondeur
+- [x] **Itération 5 — Progression** : XP, niveaux, monstres renforcés en profondeur, élites
 - [ ] **Itération 6 — Le Dragon** : boss final
 - [ ] **Itération 7 — Finitions** : sauvegarde, sons, écran de fin, scores
 
@@ -78,6 +86,7 @@ src/
   pathfinding.js  carte de distances (BFS)
   ai.js           comportement des monstres
   combat.js       résolution des attaques
+  progression.js  XP et niveaux
   items.js        catalogue des objets
   inventory.js    sac et équipement
   dungeon.js      génération du donjon

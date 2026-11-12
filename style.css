@@ -253,3 +253,53 @@ kbd {
   font-size: 0.75rem;
   color: var(--muted);
 }
+
+/* Expérience */
+.xp {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.xp-bar {
+  height: 6px;
+  background: #241f33;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xp-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.xp-text {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.log li.level {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Flash doré lors d'une montée de niveau */
+.panel.levelup {
+  animation: levelup 0.9s ease-out;
+}
+
+@keyframes levelup {
+  0% {
+    box-shadow: 0 0 0 0 rgba(242, 193, 78, 0.9);
+    border-color: var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(242, 193, 78, 0);
+    border-color: var(--border);
+  }
+}

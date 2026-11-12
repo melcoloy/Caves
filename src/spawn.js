@@ -10,6 +10,11 @@ function maxPerRoom(depth) {
   return Math.min(4, 1 + Math.floor(depth / 2));
 }
 
+// Pas d'élites avant la profondeur 3, puis +4 % par étage (plafonné à 25 %).
+function eliteChance(depth) {
+  return depth < 3 ? 0 : Math.min(0.25, 0.04 * depth);
+}
+
 function randomFloorInRoom(dungeon, room, rng) {
   const x = rng.int(room.x, room.x + room.w - 1);
   const y = rng.int(room.y, room.y + room.h - 1);
@@ -32,7 +37,8 @@ export function spawnMonsters(dungeon, depth, rng) {
       occupied.add(key);
       // Les créatures les plus récemment débloquées sont un peu plus fréquentes.
       const type = rng.weighted(eligible, (t) => 1 + t.minDepth);
-      monsters.push(createMonster(type, pos.x, pos.y));
+      const elite = rng.chance(eliteChance(depth));
+      monsters.push(createMonster(type, pos.x, pos.y, { depth, elite }));
     }
   }
   return monsters;
@@ -44,6 +50,8 @@ export function spawnItems(dungeon, depth, rng) {
     if (!rng.chance(ITEM_CHANCE_PER_ROOM)) continue;
     const pos = randomFloorInRoom(dungeon, room, rng);
     if (!pos || items.some((i) => i.x === pos.x && i.y === pos.y)) continue;
+    // Jamais sous les pieds du joueur à son arrivée (il ne pourrait pas le ramasser).
+    if (pos.x === dungeon.start.x && pos.y === dungeon.start.y) continue;
     items.push(createItem(randomItemType(depth, rng), pos.x, pos.y));
   }
   return items;

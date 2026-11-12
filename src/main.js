@@ -10,6 +10,7 @@ import { distanceMap } from "./pathfinding.js";
 import { decideAction } from "./ai.js";
 import { attack } from "./combat.js";
 import { nameOf } from "./monsters.js";
+import { gainXp, xpToNextLevel } from "./progression.js";
 import { createItem, randomItemType, itemLabel, itemSummary } from "./items.js";
 import {
   INVENTORY_SIZE,
@@ -47,6 +48,10 @@ const ui = {
   kills: document.getElementById("kills"),
   bagCount: document.getElementById("bag-count"),
   inventory: document.getElementById("inventory"),
+  panel: document.querySelector(".panel"),
+  level: document.getElementById("level"),
+  xp: document.getElementById("xp"),
+  xpFill: document.getElementById("xp-fill"),
 };
 
 const renderer = createRenderer(ui.canvas);
@@ -61,7 +66,7 @@ function readSeedFromUrl() {
 }
 
 function createPlayer() {
-  const player = { x: 0, y: 0, hp: PLAYER_STATS.maxHp, ...PLAYER_STATS };
+  const player = { x: 0, y: 0, hp: PLAYER_STATS.maxHp, level: 1, xp: 0, ...PLAYER_STATS };
   recomputeStats(player, createInventory());
   return player;
 }
@@ -176,11 +181,30 @@ function playerAttack(monster) {
   } else if (result.killed) {
     state.monsters = state.monsters.filter((m) => m !== monster);
     state.kills++;
-    log(`Tu terrasses ${nameOf(monster)} !`, "kill");
+    log(`Tu terrasses ${nameOf(monster)} ! (+${monster.xp} XP)`, "kill");
     dropLoot(monster);
+    earnXp(monster.xp);
   } else {
     log(`Tu frappes ${nameOf(monster)} (−${result.damage}).`, "hit");
   }
+}
+
+function earnXp(amount) {
+  const { player } = state;
+  for (const gain of gainXp(player, amount)) {
+    const bonuses = [`+${gain.hp} PV max`, `+${gain.attack} ATQ`];
+    if (gain.defense) bonuses.push(`+${gain.defense} DÉF`);
+    log(`Tu passes au niveau ${gain.level} ! (${bonuses.join(", ")}, PV restaurés)`, "level");
+    flashLevelUp();
+  }
+  recomputeStats(player, state.inventory);
+}
+
+// Relance l'animation CSS même si elle vient déjà d'être jouée.
+function flashLevelUp() {
+  ui.panel.classList.remove("levelup");
+  void ui.panel.offsetWidth;
+  ui.panel.classList.add("levelup");
 }
 
 function dropLoot(monster) {
@@ -299,7 +323,7 @@ function die(killer) {
   state.dead = true;
   log(`${nameOf(killer, true)} t'a vaincu…`, "damage");
   ui.gameoverText.textContent =
-    `Tué par ${nameOf(killer)} à la profondeur ${state.depth}, ` +
+    `Tué par ${nameOf(killer)} à la profondeur ${state.depth}, au niveau ${state.player.level}, ` +
     `après ${state.turns} tours et ${state.kills} monstre${state.kills > 1 ? "s" : ""} vaincu${state.kills > 1 ? "s" : ""}.`;
   ui.gameover.hidden = false;
 }
@@ -308,6 +332,10 @@ function die(killer) {
 
 function renderInventory() {
   const { inventory, player } = state;
+  const needed = xpToNextLevel(player.level);
+  ui.level.textContent = `Niv. ${player.level}`;
+  ui.xp.textContent = `${player.xp} / ${needed} XP`;
+  ui.xpFill.style.width = `${(player.xp / needed) * 100}%`;
   ui.atk.textContent = player.attack;
   ui.def.textContent = player.defense;
   ui.weapon.textContent = inventory.weapon ? inventory.weapon.name : "poings";
